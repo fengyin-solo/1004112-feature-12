@@ -35,3 +35,18 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .error-text { color: #b42318; }
 .status-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .legend-item { background: #eef2f7; border-radius: 999px; padding: 2px 10px; }
+.ready-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px; font-size: 12px; line-height: 18px; white-space: nowrap; }
+.ready-badge.is-ready { background: #e7f6ec; color: #15803d; border: 1px solid #bbe7c8; }
+.ready-badge.not-ready { background: #f1f5f9; color: var(--muted); border: 1px solid var(--border); }
+.stand-ref { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lock-tag { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 12px; line-height: 18px; }
+.lock-tag.locked { background: #fef3e2; color: #b45309; border: 1px solid #f3d4a8; }
+.lock-tag.legacy { background: #eef2f7; color: var(--muted); border: 1px solid var(--border); }
+.dev-check { background: #fff; border: 1px dashed var(--brand); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; }
+.dev-check-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+.dev-check-tag { background: var(--brand); color: #fff; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+.dev-check-list { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); max-height: 240px; overflow: auto; }
+.dev-check-list li.pass { color: #15803d; }
+.dev-check-list li.fail { color: #b42318; }
+.dev-check-detail { color: var(--muted); }
+.success-text { color: #15803d; }

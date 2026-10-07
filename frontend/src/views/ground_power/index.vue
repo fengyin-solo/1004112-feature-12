@@ -43,7 +43,19 @@
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td v-for="column in columns" :key="column">
+            <span v-if="column === '所属机位'" class="stand-ref">
+              <span>{{ row[column] || '—' }}</span>
+              <span
+                class="ready-badge"
+                :class="standBadge(row[column]).ready ? 'is-ready' : 'not-ready'"
+                :title="`机位就绪标记（与机位分配清单同步）：${standBadge(row[column]).reason}`"
+              >
+                {{ standBadge(row[column]).ready ? '机位就绪' : '机位未就绪' }}
+              </span>
+            </span>
+            <template v-else>{{ row[column] ?? '—' }}</template>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -77,6 +89,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  readinessByStandRef,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -102,6 +115,11 @@ const statusSummary = computed(() =>
 function resetFilters() {
   filters.value = {}
   reload()
+}
+
+// 机位就绪标记与机位分配清单保持同步：这里只读不写。
+function standBadge(ref: unknown) {
+  return readinessByStandRef(ref)
 }
 
 function exportRows() {

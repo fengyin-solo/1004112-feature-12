@@ -17,7 +17,7 @@
     </div>
     <table class="data-table">
       <thead>
-        <tr><th>业务模块</th><th>今日新增</th><th>待处理</th><th>异常量</th></tr>
+        <tr><th>业务模块</th><th>今日新增</th><th>待处理</th><th>异常量</th><th>就绪机位</th></tr>
       </thead>
       <tbody>
         <tr v-for="row in moduleRows" :key="row.name">
@@ -25,6 +25,12 @@
           <td>{{ row.created }}</td>
           <td>{{ row.pending }}</td>
           <td>{{ row.abnormal }}</td>
+          <td>
+            <span v-if="typeof row.ready === 'number'" class="ready-badge" :class="row.ready > 0 ? 'is-ready' : 'not-ready'">
+              {{ row.ready }} 个就绪
+            </span>
+            <span v-else>—</span>
+          </td>
         </tr>
       </tbody>
     </table>

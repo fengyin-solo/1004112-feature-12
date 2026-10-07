@@ -3,7 +3,7 @@
     <header class="page-head">
       <div>
         <h2>机位分配管理</h2>
-        <p class="page-desc">维护机位分配，围绕机位编号、机位类型、所属航站楼、匹配航班做登记、筛选与状态流转。</p>
+        <p class="page-desc">维护机位分配，围绕机位编号、机位类型、所属航站楼、匹配航班做登记、筛选与状态流转。就绪口径：已分配且匹配航班、无异常。</p>
       </div>
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记机位分配</button>
@@ -22,6 +22,7 @@
       <span v-for="item in statusSummary" :key="item.status" class="legend-item">
         {{ item.status }}：{{ item.count }}
       </span>
+      <span class="legend-item">就绪机位：{{ readyCount }}</span>
     </p>
 
     <form class="filter-bar" @submit.prevent="reload">
@@ -37,6 +38,7 @@
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th>就绪标记</th>
           <th>当前状态</th>
           <th>可执行动作</th>
         </tr>
@@ -44,6 +46,15 @@
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td>
+            <span
+              class="ready-badge"
+              :class="readiness(row).ready ? 'is-ready' : 'not-ready'"
+              :title="readiness(row).reason"
+            >
+              {{ readiness(row).ready ? '就绪' : `未就绪·${readiness(row).reason}` }}
+            </span>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -58,7 +69,7 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无机位分配数据，可先登记机位分配</td>
+          <td :colspan="columns.length + 3" class="empty-state">暂无机位分配数据，可先登记机位分配</td>
         </tr>
       </tbody>
     </table>
@@ -78,6 +89,7 @@ import {
   listEntries,
   moduleMeta,
   runAction as applyAction,
+  standReadiness,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
 
@@ -98,6 +110,11 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+const readyCount = computed(() => rows.value.filter((row) => standReadiness(row).ready).length)
+
+function readiness(row: EntryRow) {
+  return standReadiness(row)
+}
 
 function resetFilters() {
   filters.value = {}

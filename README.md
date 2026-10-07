@@ -38,6 +38,48 @@ cd frontend
 npm run build
 ```
 
+`npm run build` 会先执行 `prebuild` 钩子（`node scripts/validate-pushback.mjs`），牵引车调度
+校验不过就中止构建；Docker 镜像（`docker build` / `docker compose build`）在构建阶段跑的是同一条
+命令，所以**本地开发、构建、上线部署**跑的是同一套示例数据（`frontend/src/data/seed.js`）和同一套规则。
+
+## 牵引车调度本地校验
+
+牵引车调度页（`/pushback`）在开发模式下提供「DEV 本地校验」面板；命令行、CI、镜像构建则统一走：
+
+```bash
+cd frontend
+npm run validate:pushback   # 或 make validate
+```
+
+校验内容覆盖：
+
+- 牵引编号、关联航班、牵引车型、操作人员、牵引状态五个关键字段齐全；
+- 环境信息（操作人员、值班时段）齐全才放行，取不到时拒绝且**不覆盖原排班**；
+- 出车冲突**以先锁定车辆为准**：同牵引车型已被「已就位/推出中」的任务占有时，再调度会被拒绝；
+- **重复调度只生效一次**：同一动作重复执行返回幂等拒绝，不新增锁、不改排班；
+- 完整流转「派出车辆 → 开始推出 → 确认完成」后释放车辆锁，同车型其它任务才能再派；
+- 兼容既有排班与旧牵引记录：没有锁台账时，用旧记录的活跃状态兜底判冲突；旧记录缺字段时拒绝并说明。
+
+规则实现只有一份：`frontend/src/api/pushback-rules.js`（浏览器服务层与 Node 校验脚本共同引用）。
+车辆锁单独存放在 `localStorage` 的 `airport-ground-handling:pushback-locks` 键，与排班数据
+`airport-ground-handling:entries` 物理隔离，锁逻辑任何异常都不会改写原排班。
+
+### 环境或依赖缺失时的表现
+
+- 命令行校验只用 Node 内置模块，**不依赖 `npm install`**，未安装依赖也能运行；检测到 `node_modules`
+  缺失时会提示先 `npm install`，但校验本身照常执行。
+- Node 版本低于 18、规则/示例数据文件缺失时，校验脚本以非零码退出并打印明确原因，而不是抛堆栈。
+- 浏览器里取不到会话（操作人员/值班时段）时，牵引车动作直接被拒绝，页面保留原排班不动。
+
+## 机位就绪标记
+
+机位就绪口径统一定义在 `frontend/src/api/stand-rules.js`，全系统只算一次、所有页面共享：
+
+- 机位状态为「已分配」、已匹配真实航班、且无异常标记，才算**就绪**；其它状态给出具体未就绪原因。
+- 机位分配清单（`/stand`）直接展示「就绪标记」列；廊桥调度、地面电源、牵引车调度页面的机位/
+  推出机位单元格同步展示同一标记；运营概览给出就绪机位数量。
+- 标记是只读派生结果，不会回写机位数据；查不到关联机位时显示「未就绪」而不是伪造就绪。
+
 ## 业务模块
 
 | 模块 | 目录 | 业务对象 | 主要字段 |
@@ -66,6 +108,9 @@ npm run build
 - 每个模块的页面在 `frontend/src/views/<模块>/index.vue`，页面只负责渲染，读写统一走
   `frontend/src/api/local-service.ts`。
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
-  `frontend/src/data/seed.ts`。
-- 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
-- 想回到初始数据：清掉浏览器里 `airport-ground-handling:entries` 这一项，或调用 `resetModule(模块)`。
+  `frontend/src/data/seed.js`（用 `.js` 是为了让命令行校验脚本免依赖直接复用同一份数据，配套
+  类型声明在 `seed.d.ts`）。
+- 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断；牵引车调度的规则收口在
+  `src/api/pushback-rules.js`，`local-service.ts` 只在规则放行后写入。
+- 想回到初始数据：清掉浏览器里 `airport-ground-handling:entries`（牵引车还要清
+  `airport-ground-handling:pushback-locks`）这一项，或调用 `resetModule(模块)`。
