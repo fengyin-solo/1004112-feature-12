@@ -13,8 +13,10 @@
 .
 ├── frontend/                 Vue 3 + Vite + TypeScript 前端（唯一运行单元）
 │   ├── src/views/            每个业务模块一个页面
-│   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导出
+│   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导出、出车锁定
 │   ├── src/data/             模块元数据 / 示例数据 / localStorage 持久化
+│   ├── src/data/pushback-sample.json  牵引车调度示例数据（页面播种与本地校验共用同一套）
+│   ├── scripts/verify-pushback.mjs    牵引车调度本地开发校验入口
 │   ├── src/stores/           会话与筛选状态
 │   └── vite.config.ts        dev server 配置（open: false，无 /api 代理）
 ├── .gitignore
@@ -37,6 +39,33 @@ npm run dev
 cd frontend
 npm run build
 ```
+
+## 牵引车调度本地校验
+
+`frontend/scripts/verify-pushback.mjs` 是牵引车调度的本地开发校验入口，用同一套示例数据
+（`frontend/src/data/pushback-sample.json`，页面播种也读这份）校验五个关键字段：
+牵引编号、关联航班、牵引车型、操作人员、牵引状态。环境或依赖缺失（Node 版本过低、
+node_modules 未安装、关键依赖丢失、环境文件缺项）会逐条说明，并以非零退出码拦住流程。
+
+```bash
+cd frontend
+npm run verify     # 单独跑校验
+npm run build      # 构建前自动先跑校验（prebuild）
+npm run release    # 上线前自动先跑校验（prerelease）
+npm run deploy     # 部署前自动先跑校验（predeploy）
+```
+
+根目录 `make verify / release` 等价；`make deploy` 走 `docker compose up --build`，镜像构建
+过程中也会先跑同一份校验（见 `frontend/Dockerfile`）。
+
+## 出车锁定与就绪标记
+
+- 牵引车调度「派出车辆」按牵引车型锁定车辆：出车冲突以先锁定车辆为准，后来的任务会被拒绝；
+  重复调度只生效一次，不会重复写；「确认完成」后释放锁定，车辆可再派给其它任务。
+- 取不到环境信息（运行模式缺失、本地存储不可用或数据受损）时不做任何写操作，原排班保持不变；
+  既有排班和没有「锁定车辆」字段的旧牵引记录按状态兼容处理。
+- 机位分配清单带「推出就绪」标记：关联航班的牵引任务越过「待牵引」即为就绪。标记在数据层
+  统一计算，机位分配页、运营概览页和导出的 CSV 看到的都是同一份结果。
 
 ## 业务模块
 

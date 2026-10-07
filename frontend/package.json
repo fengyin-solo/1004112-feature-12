@@ -6,7 +6,13 @@
   "repoKind": "frontend-only",
   "scripts": {
     "dev": "vite",
+    "verify": "node scripts/verify-pushback.mjs",
+    "prebuild": "npm run verify",
     "build": "vue-tsc --noEmit && vite build",
+    "prerelease": "npm run verify",
+    "release": "npm run build",
+    "predeploy": "npm run verify",
+    "deploy": "npm run build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit"
   },
